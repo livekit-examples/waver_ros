@@ -1,0 +1,269 @@
+<?xml version="1.0"?>
+<robot name="waver" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="sim_control" default="gazebo" />
+  <xacro:arg name="camera_type" default="raspi" />
+
+  <xacro:include filename="$(find waver_description)/urdf/materials.xacro" />
+  <xacro:include filename="$(find waver_description)/urdf/util.xacro" />
+  <xacro:include filename="$(find waver_description)/urdf/lidar.xacro" />
+  <xacro:include filename="$(find waver_description)/urdf/imu.xacro" />
+
+  <!-- ************************** Simulation Control ************************** -->
+
+  <xacro:if value="${'$(arg sim_control)' == 'gazebo'}">
+    <xacro:include filename="$(find waver_description)/urdf/waver.gazebo.xacro" />
+  </xacro:if>
+
+  <xacro:if value="${'$(arg sim_control)' == 'ros2'}">
+    <xacro:include filename="$(find waver_description)/urdf/waver.control.xacro" />
+  </xacro:if>
+
+  <!-- ***************************** Camera Type ***************************** -->
+
+  <xacro:if value="${'$(arg camera_type)' == 'raspi'}">
+    <xacro:include filename="$(find waver_description)/urdf/rasp_pi_camera.xacro" />
+  </xacro:if>
+
+  <xacro:if value="${'$(arg camera_type)' == 'depth'}">
+    <xacro:include filename="$(find waver_description)/urdf/depth_camera_zedxm.xacro" />
+  </xacro:if>
+
+  <!-- ******************************* Links ******************************* -->
+
+  <link name="base_footprint"></link>
+
+  <link name="base_link">
+    <inertial>
+      <mass value="${mass_base}" />
+      <origin xyz="${mass_center_base}" rpy="0 0 ${pi/2}" />
+      <inertia ixx="0.00024519341275127564" iyy="0.0001572047252476648" izz="0.0001572047252476648"
+        ixy="0.0" iyz="0.0" ixz="0.0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/base_link.stl" scale="${scale}" />
+      </geometry>
+      <xacro:dark_gray_material />
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/base_link.stl" scale="${scale}" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="top_shell_link">
+    <inertial>
+      <mass value="${mass_top}" />
+      <origin xyz="${mass_center_top}" rpy="0 0 ${pi/2}" />
+      <inertia ixx="0.0009909748444994777" iyy="0.0008084780487946392" izz="0.0016391807866491105"
+        ixy="0.0" iyz="0.0" ixz="0.0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/top_shell_link.stl" scale="${scale}" />
+      </geometry>
+      <xacro:dark_gray_material />
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/top_shell_link.stl" scale="${scale}" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="accessories_link">
+    <visual>
+      <origin xyz="${position_acces}" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/accessories_link.stl" scale="${scale}" />
+      </geometry>
+      <xacro:black_material />
+    </visual>
+    <collision>
+      <origin xyz="${position_acces}" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/accessories_link.stl" scale="${scale}" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="accessories1_link">
+    <visual>
+      <origin xyz="${position_acces1}" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/accessories1_link.stl" scale="${scale}" />
+      </geometry>
+      <xacro:black_material />
+    </visual>
+  </link>
+
+  <link name="oled_screen_link">
+    <visual>
+      <origin xyz="${position_screen}" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/oled_screen_link.stl" scale="${scale}" />
+      </geometry>
+      <xacro:dark_blue_material />
+    </visual>
+  </link>
+
+  <link name="wheel_back_left_link">
+    <inertial>
+      <mass value="${mass_wbl}" />
+      <origin xyz="0 0 0" rpy="0 0 ${pi/2}" />
+      <inertia ixx="6.689307761499951e-05" iyy="4.2676101388344066e-05" izz="4.2578787253633605e-05"
+        ixy="0.0" iyz="0.0" ixz="0.0" />
+    </inertial>
+    <visual>
+      <origin xyz="${position_wbl}" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/wheel_back_left_link.stl"
+          scale="${scale}" />
+      </geometry>
+      <xacro:black_material />
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="wheel_front_left_link">
+    <inertial>
+      <mass value="${mass_wfl}" />
+      <origin xyz="0 0 0" rpy="0 0 ${pi/2}" />
+      <inertia ixx="6.6894731155928e-05" iyy="4.2676101388344066e-05" izz="4.2580440794562095e-05"
+        ixy="0.0" iyz="0.0" ixz="0.0" />
+    </inertial>
+    <visual>
+      <origin xyz="${position_wfl}" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/wheel_front_left_link.stl"
+          scale="${scale}" />
+      </geometry>
+      <xacro:black_material />
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="wheel_front_right_link">
+    <inertial>
+      <mass value="${mass_wfr}" />
+      <origin xyz="0 0 0" rpy="0 0 ${pi/2}" />
+      <inertia ixx="6.689307761499951e-05" iyy="4.267610303653357e-05" izz="4.2578788901823125e-05"
+        ixy="0.0" iyz="0.0" ixz="0.0" />
+    </inertial>
+    <visual>
+      <origin xyz="${position_wfr}" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/wheel_front_right_link.stl"
+          scale="${scale}" />
+      </geometry>
+      <xacro:black_material />
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="wheel_back_right_link">
+    <inertial>
+      <mass value="${mass_wbr}" />
+      <origin xyz="0 0 0" rpy="0 0 ${pi/2}" />
+      <inertia ixx="6.6894731155928e-05" iyy="4.267610303653357e-05" izz="4.25804424427516e-05"
+        ixy="0.0" iyz="0.0" ixz="0.0" />
+    </inertial>
+    <visual>
+      <origin xyz="${position_wbr}" rpy="0 0 ${pi/2}" />
+      <geometry>
+        <mesh filename="package://waver_description/meshes/wheel_back_right_link.stl"
+          scale="${scale}" />
+      </geometry>
+      <xacro:black_material />
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ******************************* Links ******************************* -->
+
+  <joint
+    name="base_joint" type="fixed">
+    <origin xyz="0.0 0.0 33.7e-3" rpy="0 0 0" />
+    <parent link="base_footprint" />
+    <child link="base_link" />
+  </joint>
+
+  <joint name="base_top_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="top_shell_link" />
+  </joint>
+
+  <joint name="top_acces_joint" type="fixed">
+    <origin xyz="${positions_acces_joint}" rpy="0 0 0" />
+    <parent link="top_shell_link" />
+    <child link="accessories_link" />
+  </joint>
+
+  <joint name="top_acces1_joint" type="fixed">
+    <origin xyz="${positions_acces1_joint}" rpy="0 0 0" />
+    <parent link="top_shell_link" />
+    <child link="accessories1_link" />
+  </joint>
+
+  <joint name="top_screen_joint" type="fixed">
+    <origin xyz="${positions_screen_joint}" rpy="0 0 0" />
+    <parent link="top_shell_link" />
+    <child link="oled_screen_link" />
+  </joint>
+
+  <joint name="wheel_back_left_joint" type="continuous">
+    <origin xyz="${position_wbl_joint}" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="wheel_back_left_link" />
+    <axis xyz="0 1 0" />
+  </joint>
+
+  <joint name="wheel_front_left_joint" type="continuous">
+    <origin xyz="${position_wfl_joint}" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="wheel_front_left_link" />
+    <axis xyz="0 1 0" />
+  </joint>
+
+  <joint name="wheel_front_right_joint" type="continuous">
+    <origin xyz="${position_wfr_joint}" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="wheel_front_right_link" />
+    <axis xyz="0 1 0" />
+  </joint>
+
+  <joint name="wheel_back_right_joint" type="continuous">
+    <origin xyz="${position_wbr_joint}" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="wheel_back_right_link" />
+    <axis xyz="0 1 0" />
+  </joint>
+
+</robot>

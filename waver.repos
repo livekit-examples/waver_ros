@@ -1,0 +1,35 @@
+# Dependencies imported into src/externals/ by scripts/setup-workspace.sh.
+#
+# Every entry is pinned to a commit SHA, never a branch. Two of these
+# (rplidar_ros, m-explore-ros2) were previously cloned by hand and undeclared,
+# and rf2o_laser_odometry tracked the moving `ros2` branch; pinning them makes
+# the robot's build reproducible.
+#
+# NOTE: ros2-livekit-bridge is pinned to the branch that removes the waver stack
+# from that repo. Re-pin to a `main` SHA once that change merges. Importing an
+# older bridge is not safe here: before that commit its own external.repos still
+# pulls GGomezMorales/waver, which puts a second waver_description on the
+# AMENT_PREFIX_PATH and shadows the vendored copy in src/vendor/.
+repositories:
+  ros2-livekit-bridge:
+    type: git
+    url: https://github.com/livekit/ros2-livekit-bridge.git
+    version: 7dd2a867e4f566c546e24b23af31b26e0d773d5b  # sderosa/BOT-408-remove-waver
+
+  # Laser odometry. Feeds the EKF on /odom_rf2o with publish_tf:=false.
+  rf2o_laser_odometry:
+    type: git
+    url: https://github.com/MAPIRlab/rf2o_laser_odometry.git
+    version: b38c68e46387b98845ecbfeb6660292f967a00d3  # ros2
+
+  # RPLidar C1 driver, /dev/ttyUSB0.
+  rplidar_ros:
+    type: git
+    url: https://github.com/Slamtec/rplidar_ros.git
+    version: 24cc9b6dea97e045bda1408eaa867ce730fd3fc3  # ros2
+
+  # Frontier exploration. Optional; referenced by waver_navigation's description.
+  m-explore-ros2:
+    type: git
+    url: https://github.com/robo-friends/m-explore-ros2.git
+    version: 326cf8a0b487c34246bb8f3326afbcd69576dc60  # main

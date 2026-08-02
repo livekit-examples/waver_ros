@@ -1,0 +1,122 @@
+# Copyright 2026 LiveKit
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build and test the packages this repository owns.
+  #
+  # Deliberately does NOT import waver.repos. Every dependency on ROS Portal,
+  # rf2o, and rplidar_ros is an exec_depend — needed to *launch* the robot, not
+  # to build it — so skipping them keeps CI at a few minutes instead of
+  # compiling the LiveKit C++ SDK and its Rust components on every push.
+  #
+  # The full container, including the libcamera stage and the SDK build, is
+  # exercised by `docker compose build` on the robot. See README.
+  # ---------------------------------------------------------------------------
+  build-and-test:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:jazzy-ros-base-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y python3-colcon-common-extensions python3-rosdep
+          rosdep update --rosdistro jazzy
+          # Runtime-only packages that are not present in this workspace.
+          rosdep install -y -r --ignore-src --rosdistro jazzy \
+            --from-paths src \
+            --skip-keys "ros_portal rf2o_laser_odometry rplidar_ros"
+
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /opt/ros/jazzy/setup.bash
+          colcon build --event-handlers console_direct+
+
+      - name: Test
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /opt/ros/jazzy/setup.bash
+          colcon test --event-handlers console_direct+
+          colcon test-result --verbose
+
+  # ---------------------------------------------------------------------------
+  # Cheap static checks that do not need ROS.
+  # ---------------------------------------------------------------------------
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: shellcheck
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          shellcheck scripts/*.sh setup-shell-env.sh
+
+      - name: XML and YAML are well-formed
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y libxml2-utils
+          # Vendored trees are upstream's problem, not ours.
+          find src .github -name '*.xml' -not -path 'src/vendor/*' -print0 \
+            | xargs -0 -r xmllint --noout
+          python3 - <<'PY'
+          import pathlib
+          import sys
+
+          import yaml
+
+          failures = []
+          for path in pathlib.Path('.').rglob('*.y*ml'):
+              if 'vendor' in path.parts:
+                  continue
+              try:
+                  # ROS param files and GitHub workflows both parse as plain YAML.
+                  list(yaml.safe_load_all(path.read_text()))
+              except yaml.YAMLError as exc:
+                  failures.append(f'{path}: {exc}')
+          if failures:
+              print('\n'.join(failures))
+              sys.exit(1)
+          print('all YAML parsed')
+          PY
+
+      - name: Dependency pins are SHAs, not branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A moving branch pin makes the robot's build unreproducible.
+          if grep -nE '^\s+version:\s' waver.repos | grep -vE '[0-9a-f]{40}'; then
+            echo "::error::waver.repos has a non-SHA pin (see the lines above)"
+            exit 1
+          fi
+          echo "all pins are SHAs"

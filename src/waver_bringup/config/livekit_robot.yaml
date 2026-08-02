@@ -1,0 +1,105 @@
+# yaml-language-server: $schema=../../../ros_portal_config/schema/ros_portal_config.schema.json
+# Copyright 2026 LiveKit
+
+ros_portal:
+  version: "0.0.1"
+  topic_polling_period_ms: 500
+
+  services:
+    - service: "/slam_toolbox/reset"
+      direction: "out"
+      participant: "waver_controller"
+      msg_type: "slam_toolbox/srv/Reset"
+
+  topics:
+    # Commands received from the controller (LiveKit -> ROS).
+    - topic: "/cmd_vel"
+      direction: "in"
+
+    - topic: "/goal_pose"
+      direction: "in"
+
+    - topic: "/initialpose"
+      direction: "in"
+
+    - topic: "/clicked_point"
+      direction: "in"
+
+    # Telemetry / sensor / nav streams sent out to LiveKit (ROS -> LiveKit)
+    - topic: "/map"
+      direction: "out"
+
+    - topic: "/plan"
+      direction: "out"
+
+    - topic: "/robot_description"
+      direction: "out"
+
+    - topic: "/scan"
+      direction: "out"
+
+    - topic: "/camera/image_raw"
+      direction: "out"
+
+    - topic: "/pose"
+      direction: "out"
+
+    - topic: "/slam_toolbox/graph_visualization"
+      direction: "out"
+
+    - topic: "/global_costmap/published_footprint"
+      direction: "out"
+
+    - topic: "/odom"
+      direction: "out"
+      encoding: "jsonschema"
+
+    - topic: "/imu/data_raw"
+      max_rate_hz: 20
+      direction: "out"
+      encoding: "jsonschema"
+
+    # Transform tree — required so the controller's Foxglove 3D panel has a
+    # valid fixed frame (without it the click-to-publish tool is hidden).
+    - topic: "/tf"
+      direction: "out"
+
+    # /tf_static is latched (published once at startup with TRANSIENT_LOCAL
+    # durability). DataTracks are not latched, so it is forwarded over the RPC
+    # push-with-ack path: ROS Portal stores it and pushes it to every peer that
+    # joins, so transforms published before the controller connected still
+    # arrive. See `latched` in docs/configuration.md.
+    - topic: "/tf_static"
+      direction: "out"
+      latched: true
+  video_sources:
+    - track_name: "waver_robot"
+      source:
+        type: "gstreamer"
+        # Capture directly from the physical camera via libcamerasrc and encode
+        # in-process with vp8enc. Software encode (rather than the Pi hardware
+        # H.264 encoder) is used so WebRTC can drive adaptive bitrate: the
+        # capture layer sets the encoder's `target-bitrate` property at runtime
+        # (see rate_control below). v4l2h264enc exposes bitrate only via its
+        # `extra-controls` V4L2 structure, which the capture layer cannot write
+        # as a plain integer property, so it could not be rate-controlled.
+        pipeline: >-
+          libcamerasrc
+          ! video/x-raw,width=640,height=480,format=NV12,interlace-mode=progressive,framerate=30/1
+          ! videoconvert ! video/x-raw,format=I420
+          ! videoflip method=rotate-180
+          ! vp8enc name=lk_encoder deadline=1 cpu-used=8 keyframe-max-dist=30
+          lag-in-frames=0 target-bitrate=2500000
+          ! video/x-vp8
+          ! appsink name=lk_appsink sync=false max-buffers=2 drop=true
+        codec: "vp8"
+        resolution:
+          width: 640
+          height: 480
+        rate_control:
+          element: "lk_encoder"
+          property: "target-bitrate"
+          unit: "bps"
+      publish_options:
+        max_bitrate_bps: 2500000
+        max_framerate: 30

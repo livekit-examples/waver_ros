@@ -1,0 +1,70 @@
+{
+  "name": "waver_ros",
+  "build": {
+    "context": "..",
+    "dockerfile": "../Dockerfile",
+    "args": {
+      // Keep at the libcamera the host has installed: dpkg -l | grep libcamera
+      "LIBCAMERA_VERSION": "${localEnv:LIBCAMERA_VERSION:v0.7.1+rpt20260429}",
+      "ROS_DISTRO": "${localEnv:ROS_DISTRO:jazzy}",
+      "ROS_IMAGE_DIGEST": "${localEnv:ROS_IMAGE_DIGEST:31daab66eef9139933379fb67159449944f4e2dcf2e22c2d12cc715f29873e0f}",
+      "ROS_IMAGE_REPOSITORY": "${localEnv:ROS_IMAGE_REPOSITORY:ros}",
+      "ROS_IMAGE_TAG": "${localEnv:ROS_IMAGE_TAG:jazzy-ros-base-noble}",
+      "WS_ROS": "waver_ws"
+    }
+  },
+  "workspaceFolder": "/waver_ws",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/waver_ws,type=bind",
+
+  // libcamera enumerates cameras through udev, so libcamerasrc finds no camera
+  // without the host's udev runtime directory. The device nodes themselves come
+  // in via "privileged" below.
+  "mounts": [
+    "source=/run/udev,target=/run/udev,type=bind,readonly"
+  ],
+
+  "remoteUser": "root",
+  "init": true,
+
+  // /dev/video*, /dev/media*, /dev/dma_heap for the camera; /dev/serial0 for the
+  // rover's ESP32 board; /dev/ttyUSB0 for the RPLidar.
+  "privileged": true,
+  "runArgs": [
+    "--ipc=host",
+    "--network=host"
+  ],
+
+  "containerEnv": {
+    "DISPLAY": "${localEnv:DISPLAY}",
+    "QT_X11_NO_MITSHM": "1",
+    "CMAKE_EXPORT_COMPILE_COMMANDS": "1",
+    "SSH_AUTH_SOCK": "/ssh-agent"
+  },
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": "/ssh-agent"
+  },
+
+  // The bind mount above replaces the image's /waver_ws, including the
+  // src/externals/ populated at build time, so re-import into the mounted tree.
+  "postCreateCommand": "bash -lc './scripts/setup-workspace.sh'",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "ms-python.python",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash",
+            "args": ["-l"]
+          }
+        }
+      }
+    }
+  }
+}

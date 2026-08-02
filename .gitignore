@@ -1,0 +1,20 @@
+# colcon
+build/
+install/
+log/
+
+# vcs-imported dependencies (see waver.repos)
+src/externals/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# core dumps — a ROS crash on the Pi leaves ~300 MB behind
+core
+core.*
+
+# editors / OS
+.vscode/
+._*
+.DS_Store

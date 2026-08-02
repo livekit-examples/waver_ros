@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="lidar">
+
+    <xacro:include filename="$(find waver_description)/urdf/materials.xacro" />
+    <xacro:include filename="$(find waver_description)/urdf/util.xacro" />
+
+    <link name="lidar_link">
+        <inertial>
+            <mass value="${mass_lidar}" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <inertia ixx="1.1969407982864896e-05" iyy="1.4912788506851203e-05" izz="1.9371239273809308e-05" ixy="0.0" iyz="0.0" ixz="0.0" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 -0.027" rpy="0 0 ${pi/2}" />
+            <geometry>
+                <mesh filename="package://waver_description/meshes/LD19.stl" scale="${scale}" />
+            </geometry>
+            <xacro:black_material />
+        </visual>
+        <collision>
+            <origin xyz="0 0 -0.0107" rpy="0 0 0" />
+            <geometry>
+                <box size="0.0383 0.0383 0.030" />
+            </geometry>
+        </collision>
+    </link>
+
+    <joint name="lidar_joint" type="fixed">
+        <!-- also please add TODO(sderosa) these are roughly mesaured via a ruler, get real measurements from CAD -->
+        <origin xyz="0.025 0 0.22" rpy="0 0 0" />
+        <parent link="top_shell_link" />
+        <child link="lidar_link" />
+    </joint>
+
+    <gazebo reference="lidar_link">
+        <material>Gazebo/Black</material>
+        <sensor name="lidar_link" type="gpu_lidar">
+            <pose>0 0 0 0 0 0</pose>
+            <visualize>false</visualize>
+            <topic>scan</topic>
+            <gz_frame_id>lidar_link</gz_frame_id>
+            <always_on>true</always_on>
+            <update_rate>${lidar_frequency}</update_rate>
+            <ray>
+                <scan>
+                    <horizontal>
+                        <samples>${lidar_samples}</samples>
+                        <resolution>1</resolution>
+                        <min_angle>${lidar_min_angle}</min_angle>
+                        <max_angle>${lidar_max_angle}</max_angle>
+                    </horizontal>
+                </scan>
+                <range>
+                    <min>${lidar_min_range}</min>
+                    <max>${lidar_max_range}</max>
+                    <resolution>0.01</resolution>
+                </range>
+                <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.01</stddev>
+                </noise>
+            </ray>
+        </sensor>
+    </gazebo>
+</robot>
