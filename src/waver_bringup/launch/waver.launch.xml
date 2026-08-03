@@ -26,6 +26,9 @@
        Topics stay flat (/scan, /map, /tf) on the robot's own graph — only
        frames are prefixed. Separation of topics happens at the controller. -->
   <arg name="robot_name" default="robot_1" description="Per-robot TF frame prefix and bridge identity." />
+  <!-- LiveKit Teleop Portal publishes Twist on /&lt;participant_id&gt;/cmd_vel. When set,
+       relay that topic onto the flat /cmd_vel the driver (and Gazebo DiffDrive) consume. -->
+  <arg name="id" default="" description="LiveKit teleop participant id; when set, relay /&lt;id&gt;/cmd_vel -&gt; /cmd_vel." />
 
   <arg name="sim"         default="false" description="Launch Gazebo and use simulation settings." />
   <arg name="sim_gui"     default="false" description="Launch the Gazebo GUI client when sim is enabled." />
@@ -200,4 +203,8 @@
     <arg name="model"        value="$(var model)" />
     <arg name="camera_type"  value="$(var camera_type)" />
   </include>
+
+  <!-- Teleop Portal: /<id>/cmd_vel -> /cmd_vel (skipped when id is empty). -->
+  <node if="$(not-equals $(var id) '')" pkg="topic_tools" exec="relay" name="cmd_vel_relay"
+    output="screen" args="/$(var id)/cmd_vel /cmd_vel" />
 </launch>

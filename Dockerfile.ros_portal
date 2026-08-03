@@ -1,0 +1,65 @@
+# ros_portal with a Raspberry Pi-capable libcamera.
+#
+# The published livekit/ros-portal:jazzy-gst image is Ubuntu noble based, and
+# noble ships upstream libcamera 0.2.0. Two things go wrong with it on a Pi:
+#
+#   1. noble installs libcamera0.2 but not libcamera-ipa, so there are no IPA
+#      modules at all -- "No IPA found in '/usr/lib/aarch64-linux-gnu/libcamera'"
+#      followed by "Failed to load a suitable IPA library". libcamerasrc then
+#      sees zero cameras and the pipeline fails its state change.
+#   2. Even with libcamera-ipa added, 0.2.0's rpi/vc4 pipeline handler is far
+#      older than the host's rpt kernel and dies in the IPA:
+#      'assertion "it != buffers_.end()" failed in prepareIsp()'.
+#
+# Mounting the host's own libcamera 0.7.1+rpt in is not enough either: the
+# host's libcamerasrc is built for GStreamer 1.26 (Debian trixie) and this image
+# has 1.24, so GStreamer refuses it outright -- "plugin has incompatible version
+# (plugin: 1.26, gst: 1.24), not loading".
+#
+# So build Raspberry Pi's libcamera fork here, pinned to the same tag as the
+# host's libcamera package (see `dpkg -l libcamera0.7` on the Pi) so the
+# pipeline handler matches the running kernel, and link its GStreamer element
+# against this image's 1.24. The build ships its own IPA modules and tuning
+# files, so the container needs nothing from the host but /dev and /run/udev.
+FROM livekit/ros-portal:jazzy-gst.sdd
+
+# Keep in sync with the host: `dpkg -l libcamera0.7`. Tags are at
+# https://github.com/raspberrypi/libcamera/tags
+ARG LIBCAMERA_TAG=v0.7.1+rpt20260429
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git meson ninja-build pkg-config g++ \
+        python3-yaml python3-ply python3-jinja2 \
+        libyaml-dev libudev-dev libgnutls28-dev openssl \
+        libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Only the rpi/vc4 pipeline + IPA are built: that is the Pi 4 CSI path (Pi 5
+# would need rpi/pisp, which additionally wants libpisp). Everything optional
+# is off -- cam/qcam/lc-compliance, the V4L2 compat shim, Python bindings --
+# because the only consumer here is the libcamerasrc GStreamer element. The
+# GStreamer plugin lands on top of noble's 0.2.0 libgstlibcamera.so; the old
+# libcamera.so.0.2 stays installed but is left unreferenced (different soname).
+RUN git clone --depth 1 --branch "${LIBCAMERA_TAG}" \
+        https://github.com/raspberrypi/libcamera.git /tmp/libcamera \
+    && cd /tmp/libcamera \
+    && meson setup build \
+        --prefix=/usr \
+        --libdir="lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)" \
+        --buildtype=release \
+        -Dpipelines=rpi/vc4 \
+        -Dipas=rpi/vc4 \
+        -Dgstreamer=enabled \
+        -Dv4l2=false \
+        -Dcam=disabled \
+        -Dqcam=disabled \
+        -Dlc-compliance=disabled \
+        -Ddocumentation=disabled \
+        -Dtracing=disabled \
+        -Dpycamera=disabled \
+        -Dtest=false \
+    && ninja -C build \
+    && ninja -C build install \
+    && ldconfig \
+    && rm -rf /tmp/libcamera
