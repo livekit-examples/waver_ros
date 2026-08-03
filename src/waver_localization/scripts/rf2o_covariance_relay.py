@@ -14,8 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Republish rf2o odometry with sane covariances (and a base-frame twist) for
-robot_localization.
+"""Republish rf2o odometry with sane covariances and a base-frame twist.
+
+Intended for robot_localization.
 
 rf2o_laser_odometry publishes nav_msgs/Odometry with ALL-ZERO pose and twist
 covariances. robot_localization reads a zero variance as "this measurement is

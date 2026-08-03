@@ -20,7 +20,11 @@ find_package(ament_cmake_auto REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  # See waver_localization/CMakeLists.txt: the ament pep257 convention enforces
+  # D213, this repo uses the mutually exclusive D212 style.
+  list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_pep257)
   ament_lint_auto_find_test_dependencies()
+  ament_pep257(--add-ignore D213)
 endif()
 
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR INSTALL_TO_SHARE config launch)

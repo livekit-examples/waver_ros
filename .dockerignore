@@ -1,0 +1,32 @@
+# Keep the Docker build context small. The Dockerfile no longer COPYs src/ —
+# source and colcon output are bind-mounted at runtime — but excluding VCS
+# metadata and local artifacts still speeds up `docker build`.
+
+# Colcon output at the workspace root (not under src/, but never belongs in context).
+/build
+/install
+/log
+
+# Host repo metadata and tooling — not copied into the image.
+/.git
+/.github
+/.devcontainer
+/.claude
+/.vscode
+/docker-compose.yml
+/.env
+/.env.*
+**/.git
+**/.git/**
+
+# Python bytecode and local build artifacts under src/.
+**/__pycache__
+**/*.py[cod]
+src/**/build
+src/**/install
+src/**/log
+src/**/target
+
+# Upstream CI/dev trees inside imported dependencies.
+**/.github
+**/.devcontainer

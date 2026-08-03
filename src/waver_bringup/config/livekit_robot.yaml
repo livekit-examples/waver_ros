@@ -1,5 +1,11 @@
-# yaml-language-server: $schema=../../../ros_portal_config/schema/ros_portal_config.schema.json
+# yaml-language-server: $schema=../../externals/ros-portal/src/ros_portal_config/schema/ros_portal_config.schema.json
 # Copyright 2026 LiveKit
+#
+# Robot-side ROS Portal config. Pass to ros_portal.launch.py:
+#   config_path:=$(ros2 pkg prefix waver_bringup)/share/waver_bringup/config/livekit_robot.yaml
+#
+# LiveKit credentials come from the environment (LIVEKIT_URL, LIVEKIT_TOKEN),
+# not this file — see ros_portal docs/configuration.md.
 
 ros_portal:
   version: "0.0.1"
@@ -13,7 +19,7 @@ ros_portal:
 
   topics:
     # Commands received from the controller (LiveKit -> ROS).
-    - topic: "/cmd_vel"
+    - topic: "/waver.*/cmd_vel"
       direction: "in"
 
     - topic: "/goal_pose"
@@ -36,9 +42,6 @@ ros_portal:
       direction: "out"
 
     - topic: "/scan"
-      direction: "out"
-
-    - topic: "/camera/image_raw"
       direction: "out"
 
     - topic: "/pose"
@@ -72,21 +75,25 @@ ros_portal:
     - topic: "/tf_static"
       direction: "out"
       latched: true
+
+  # MIPI CSI camera (IMX219 on the Pi ribbon cable). Publishes a LiveKit video
+  # track independently of the ROS topic graph — see `video_sources` in
+  # ros_portal docs/configuration.md and the GStreamer capture examples in
+  # client-sdk-cpp/cpp-example-collection/capture_source/gstreamer/.
   video_sources:
-    - track_name: "waver_robot"
+    - track_name: "mipi_camera"
       source:
         type: "gstreamer"
-        # Capture directly from the physical camera via libcamerasrc and encode
-        # in-process with vp8enc. Software encode (rather than the Pi hardware
-        # H.264 encoder) is used so WebRTC can drive adaptive bitrate: the
-        # capture layer sets the encoder's `target-bitrate` property at runtime
-        # (see rate_control below). v4l2h264enc exposes bitrate only via its
-        # `extra-controls` V4L2 structure, which the capture layer cannot write
-        # as a plain integer property, so it could not be rate-controlled.
+        # libcamerasrc reads the CSI camera directly (not a ROS camera driver).
+        # Pipeline shape follows capture_source/gstreamer/webcam: caps filter,
+        # vp8enc named lk_encoder for WebRTC rate control, appsink lk_appsink.
+        # Software VP8 (not Pi hardware H.264) so target-bitrate can be driven
+        # at runtime via rate_control below.
         pipeline: >-
           libcamerasrc
           ! video/x-raw,width=640,height=480,format=NV12,interlace-mode=progressive,framerate=30/1
-          ! videoconvert ! video/x-raw,format=I420
+          ! videoconvert ! videoscale ! videorate
+          ! video/x-raw,format=I420,width=640,height=480,framerate=30/1
           ! videoflip method=rotate-180
           ! vp8enc name=lk_encoder deadline=1 cpu-used=8 keyframe-max-dist=30
           lag-in-frames=0 target-bitrate=2500000
@@ -96,6 +103,66 @@ ros_portal:
         resolution:
           width: 640
           height: 480
+        rate_control:
+          element: "lk_encoder"
+          property: "target-bitrate"
+          unit: "bps"
+      publish_options:
+        max_bitrate_bps: 2500000
+        max_framerate: 30
+
+    # Synthetic test pattern — a known-good track for checking the LiveKit
+    # uplink independently of the camera hardware. Mirrors mipi_camera's
+    # resolution/framerate/bitrate so it is a drop-in comparison.
+    - track_name: "demo_camera"
+      source:
+        type: "gstreamer"
+        # videotestsrc pattern=smpte is the classic SMPTE 100% color bars with
+        # the television-snow block in the bottom right — an instantly
+        # recognizable reference for checking colors, scaling and tearing.
+        # clockoverlay stamps wall-clock date + time on every frame so uplink
+        # latency and frozen/stale video are obvious at a glance.
+        pipeline: >-
+          videotestsrc is-live=true do-timestamp=true pattern=smpte
+          ! video/x-raw,width=640,height=480,framerate=30/1
+          ! clockoverlay time-format="%Y-%m-%d %H:%M:%S" halignment=center
+          valignment=top shaded-background=true font-desc="Sans Bold 20"
+          ! videoconvert ! video/x-raw,format=I420
+          ! vp8enc name=lk_encoder deadline=1 cpu-used=8 keyframe-max-dist=30
+          lag-in-frames=0 target-bitrate=2500000
+          ! video/x-vp8
+          ! appsink name=lk_appsink sync=false max-buffers=2 drop=true
+        codec: "vp8"
+        resolution:
+          width: 640
+          height: 480
+        rate_control:
+          element: "lk_encoder"
+          property: "target-bitrate"
+          unit: "bps"
+      publish_options:
+        max_bitrate_bps: 2500000
+        max_framerate: 30
+
+    # Synthetic GStreamer test pattern (bouncing ball + timestamp overlay),
+    # software-encoded to VP8 — exercises the full GStreamer pipeline path
+    # without any camera hardware.
+    - track_name: "demo_gst_camera"
+      source:
+        type: "gstreamer"
+        pipeline: >-
+          videotestsrc is-live=true do-timestamp=true pattern=ball motion=wavy animation-mode=frames !
+          video/x-raw,width=1280,height=720,framerate=30/1 !
+          timeoverlay halignment=right valignment=bottom shaded-background=true !
+          videoconvert ! video/x-raw,format=I420 !
+          vp8enc name=lk_encoder deadline=1 cpu-used=8 keyframe-max-dist=30
+          lag-in-frames=0 target-bitrate=2500000 !
+          video/x-vp8 !
+          appsink name=lk_appsink sync=false max-buffers=2 drop=true
+        codec: "vp8"
+        resolution:
+          width: 1280
+          height: 720
         rate_control:
           element: "lk_encoder"
           property: "target-bitrate"

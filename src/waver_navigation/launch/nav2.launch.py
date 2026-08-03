@@ -142,9 +142,12 @@ def generate_launch_description():
         DeclareLaunchArgument('robot_name', default_value='robot_1',
                               description='TF frame prefix for the nav2 servers/costmaps.'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('params_file', default_value=default_params,
-                              description='Source nav2 params; frames are rewritten per robot_name.'),
-        DeclareLaunchArgument('use_composition', default_value='True',
-                              description='Run all nav2 servers in one component container (CPU/RAM win on the Pi).'),
+        DeclareLaunchArgument(
+            'params_file', default_value=default_params,
+            description='Source nav2 params; frames are rewritten per robot_name.'),
+        DeclareLaunchArgument(
+            'use_composition', default_value='True',
+            description='Run all nav2 servers in one component container '
+                        '(CPU/RAM win on the Pi).'),
         OpaqueFunction(function=_launch_setup),
     ])

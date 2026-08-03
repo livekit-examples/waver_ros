@@ -20,7 +20,14 @@ find_package(ament_cmake_auto REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  # D212 and D213 are mutually exclusive: one wants the docstring summary on the
+  # opening-quotes line, the other on the line below. The ament convention
+  # ignores D212 and so enforces D213, but this repo uses the D212 style, so run
+  # pep257 explicitly with D213 ignored instead of with ament_lint_auto's
+  # defaults. Same decision as waver_driver/test/test_pep257.py.
+  list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_pep257)
   ament_lint_auto_find_test_dependencies()
+  ament_pep257(--add-ignore D213)
 endif()
 
 install(PROGRAMS

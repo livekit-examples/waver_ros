@@ -23,6 +23,7 @@
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
+
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>launch</exec_depend>
@@ -32,8 +33,9 @@
   <exec_depend>rplidar_ros</exec_depend>
   <exec_depend>teleop_twist_keyboard</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
-  <exec_depend>waver_driver</exec_depend>
+  <exec_depend>topic_tools</exec_depend>
   <exec_depend>waver_description</exec_depend>
+  <exec_depend>waver_driver</exec_depend>
   <exec_depend>waver_localization</exec_depend>
   <exec_depend>waver_navigation</exec_depend>
   <exec_depend>waver_simulation</exec_depend>

@@ -1,5 +1,8 @@
-# yaml-language-server: $schema=../../../ros_portal_config/schema/ros_portal_config.schema.json
+# yaml-language-server: $schema=../../externals/ros-portal/src/ros_portal_config/schema/ros_portal_config.schema.json
 # Copyright 2026 LiveKit
+#
+# Controller-side ROS Portal config. Pass to ros_portal.launch.py:
+#   config_path:=$(ros2 pkg prefix waver_bringup)/share/waver_bringup/config/livekit_controller.yaml
 
 ros_portal:
   version: "0.0.1"
@@ -22,9 +25,6 @@ ros_portal:
       direction: "in"
 
     - topic: "/scan"
-      direction: "in"
-
-    - topic: "/camera/image_raw"
       direction: "in"
 
     - topic: "/pose"
