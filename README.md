@@ -1,5 +1,9 @@
 # waver_ros
 
+> [!IMPORTANT]
+> This repository is currently in Developer Preview mode and not ready for production use.
+> There may be bugs, and APIs and configuration options are subject to change during this period.
+
 ROS 2 stack for the [Waveshare WAVE ROVER](https://www.waveshare.com/wiki/WAVE_ROVER)
 4WD rover, driven from a Raspberry Pi over serial and teleoperated / navigated
 remotely over [LiveKit](https://livekit.io) via
