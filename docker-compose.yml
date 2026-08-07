@@ -14,9 +14,11 @@
 #
 # On-robot deployment.
 #
-#   docker compose build          # ~hours natively on a Pi 4; see README
-#   docker compose run --rm waver # interactive shell, then `waver`
-#   docker compose up             # launch the full stack
+#   ./scripts/setup_repos.sh              # host: clone dependencies
+#   docker compose build                  # image: toolchain + system packages
+#   docker compose run --rm waver bros    # container: rosdep + colcon build
+#   docker compose run --rm waver         # interactive shell
+#   docker compose up                     # launch the full stack
 
 services:
   waver:
@@ -34,10 +36,10 @@ services:
     # privileged. It is a single-purpose image on a dedicated robot.
     privileged: true
 
-    # libcamera enumerates cameras through udev. Without the host's udev runtime
-    # directory, libcamerasrc reports "Could not find any supported camera on
-    # this system" even though /dev/media* is present.
+    # Host workspace bind-mount: source under src/, colcon output (build/,
+    # install/, log/), and scripts/ stay on the Pi and survive image rebuilds.
     volumes:
+      - .:/waver_ws
       - /run/udev:/run/udev:ro
 
     # host networking so the LiveKit connection and any local ROS tooling share
@@ -46,10 +48,6 @@ services:
     ipc: host
 
     environment:
-      # Populate from a .env file next to this compose file (git-ignored).
-      LIVEKIT_URL: ${LIVEKIT_URL:?set LIVEKIT_URL in .env}
-      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY in .env}
-      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET in .env}
       # Override to SUBNET to reach the ROS graph from another machine.
       ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}
 
@@ -59,7 +57,4 @@ services:
     stop_grace_period: 10s
     restart: unless-stopped
 
-    command:
-      - /bin/bash
-      - -lc
-      - ros2 launch waver_bringup waver.launch.xml
+    command: tail -F /dev/null

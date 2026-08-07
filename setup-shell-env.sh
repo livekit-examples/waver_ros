@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Installs a login-shell profile so every shell in the container has ROS and the
+# Installs a shell profile so every shell in the container has ROS and the
 # workspace overlay sourced. Run once at image build time.
 
 set -euo pipefail
@@ -36,14 +36,27 @@ _source_ws_overlay() {
 _source_ros_env
 _source_ws_overlay
 
-# Re-source after a rebuild.
-alias sros='_source_ros_env && _source_ws_overlay'
+# Functions, not aliases: bash only expands aliases in interactive shells, so an
+# alias is invisible to \`bash -lc bros\` and to anything docker execs directly.
 
-# Build the robot stack.
-alias bros='cd "\${WS}" && colcon build --packages-up-to waver_bringup && sros'
+# Re-source after a rebuild.
+sros() {
+    _source_ros_env
+    _source_ws_overlay
+}
+
+# Build the robot stack (rosdep + colcon).
+bros() {
+    cd "\${WS}" &&
+        ./scripts/rosdep_update.sh &&
+        colcon build --packages-up-to waver_bringup &&
+        sros
+}
 
 # Re-resolve system dependencies after editing a package.xml.
-alias dros='cd "\${WS}" && ./scripts/setup-workspace.sh deps'
+dros() {
+    cd "\${WS}" && ./scripts/rosdep_update.sh
+}
 
 # Bring the robot up. Pass launch args through, e.g. \`waver teleop_only:=true\`.
 waver() {
@@ -62,3 +75,27 @@ camcheck() {
 EOF
 
 chmod 0644 /etc/profile.d/waver.sh
+
+# `docker compose run --rm waver bros` hands its command straight to the image
+# entrypoint, which execs it — no shell is involved, so the functions above are
+# not in scope. These wrappers give those two commands a PATH entry that starts a
+# login shell (sourcing the profile) and then calls the function of the same
+# name; a function shadows the PATH entry, so this does not recurse. `sros` gets
+# no wrapper: re-sourcing the environment of a subprocess would do nothing.
+for _cmd in bros dros; do
+    printf '#!/bin/bash -l\n%s "$@"\n' "${_cmd}" >"/usr/local/bin/${_cmd}"
+    chmod 0755 "/usr/local/bin/${_cmd}"
+done
+
+# /etc/profile.d is only read by login shells, so `docker exec -it waver bash`
+# would otherwise land in a shell with no ROS on CMAKE_PREFIX_PATH and colcon
+# failing to find ament_cmake. Pull the same profile into interactive
+# non-login shells.
+cat <<'EOF' >>/root/.bashrc
+
+# Sourced for interactive non-login shells (e.g. `docker exec -it waver bash`);
+# login shells get this via /etc/profile.d.
+if [ -f /etc/profile.d/waver.sh ]; then
+    source /etc/profile.d/waver.sh
+fi
+EOF

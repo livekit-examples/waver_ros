@@ -60,7 +60,10 @@ class SimFramePrefixRelay(Node):
 
         # A trailing-slash prefix, e.g. "robot_1/". Empty -> passthrough.
         raw_prefix = self.declare_parameter('prefix', '').value
-        self.prefix = raw_prefix if (not raw_prefix or raw_prefix.endswith('/')) else f'{raw_prefix}/'
+        self.prefix = (
+            raw_prefix if (not raw_prefix or raw_prefix.endswith('/'))
+            else f'{raw_prefix}/'
+        )
 
         in_tf = self.declare_parameter('input_tf_topic', '/sim/tf').value
         out_tf = self.declare_parameter('output_tf_topic', '/tf').value

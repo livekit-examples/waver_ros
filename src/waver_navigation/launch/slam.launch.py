@@ -83,10 +83,12 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        DeclareLaunchArgument('robot_name', default_value='robot_1',
-                              description='TF frame prefix for slam_toolbox map/odom/base frames.'),
+        DeclareLaunchArgument(
+            'robot_name', default_value='robot_1',
+            description='TF frame prefix for slam_toolbox map/odom/base frames.'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('slam_params_file', default_value=default_params,
-                              description='Source slam_toolbox params; frames are rewritten per robot_name.'),
+        DeclareLaunchArgument(
+            'slam_params_file', default_value=default_params,
+            description='Source slam_toolbox params; frames are rewritten per robot_name.'),
         OpaqueFunction(function=_launch_setup),
     ])

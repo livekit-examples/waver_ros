@@ -6,10 +6,6 @@
     "args": {
       // Keep at the libcamera the host has installed: dpkg -l | grep libcamera
       "LIBCAMERA_VERSION": "${localEnv:LIBCAMERA_VERSION:v0.7.1+rpt20260429}",
-      "ROS_DISTRO": "${localEnv:ROS_DISTRO:jazzy}",
-      "ROS_IMAGE_DIGEST": "${localEnv:ROS_IMAGE_DIGEST:31daab66eef9139933379fb67159449944f4e2dcf2e22c2d12cc715f29873e0f}",
-      "ROS_IMAGE_REPOSITORY": "${localEnv:ROS_IMAGE_REPOSITORY:ros}",
-      "ROS_IMAGE_TAG": "${localEnv:ROS_IMAGE_TAG:jazzy-ros-base-noble}",
       "WS_ROS": "waver_ws"
     }
   },
@@ -44,9 +40,8 @@
     "SSH_AUTH_SOCK": "/ssh-agent"
   },
 
-  // The bind mount above replaces the image's /waver_ws, including the
-  // src/externals/ populated at build time, so re-import into the mounted tree.
-  "postCreateCommand": "bash -lc './scripts/setup-workspace.sh'",
+  // Run setup_repos.sh on the host before opening the dev container. Build the
+  // workspace manually with `bros` (rosdep + colcon) inside the container.
 
   "customizations": {
     "vscode": {

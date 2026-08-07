@@ -60,6 +60,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ninja-build \
       openssl \
       pkg-config \
+      python3-jinja2 \
       python3-ply \
       python3-yaml && \
     rm -rf /var/lib/apt/lists/*
@@ -113,7 +114,6 @@ RUN apt-get update && apt-get install -y \
       python3-jinja2 \
       python3-pip \
       python3-rosdep \
-      python3-vcstool \
       wget && \
     rm -rf /var/lib/apt/lists/*
 
@@ -158,8 +158,8 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 # --- Robot stack dependencies -------------------------------------------------
 # Installed explicitly rather than left to rosdep so they land in a cacheable
-# layer; scripts/setup-workspace.sh still runs rosdep afterwards as the
-# authoritative catch-all.
+# layer; scripts/rosdep_update.sh covers anything missing when building on the
+# bind-mounted workspace.
 RUN apt-get update && apt-get install -y \
       ros-${ROS_DISTRO}-foxglove-bridge \
       ros-${ROS_DISTRO}-joint-state-publisher \
@@ -171,6 +171,7 @@ RUN apt-get update && apt-get install -y \
       ros-${ROS_DISTRO}-ros2-control* \
       ros-${ROS_DISTRO}-slam-toolbox \
       ros-${ROS_DISTRO}-teleop-twist-keyboard \
+      ros-${ROS_DISTRO}-test-msgs \
       ros-${ROS_DISTRO}-tf2-ros \
       ros-${ROS_DISTRO}-xacro \
       python3-serial && \
@@ -204,20 +205,10 @@ ENV GST_PLUGIN_PATH="/usr/local/lib/gstreamer-1.0"
 # --- LiveKit CLI --------------------------------------------------------------
 RUN curl -sSL https://get.livekit.io/cli | bash
 
-# --- Workspace ----------------------------------------------------------------
-# Dependencies are cloned before src/ is copied so that editing a source file
-# does not invalidate the clone layer.
-COPY waver.repos ./waver.repos
-COPY scripts/ ./scripts/
-RUN ./scripts/setup-workspace.sh import
-
-COPY src/ ./src/
-RUN ./scripts/setup-workspace.sh deps
-
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
-    colcon build --packages-up-to waver_bringup \
-      --cmake-args -DCMAKE_BUILD_TYPE=Release
-
+# --- Workspace shell ----------------------------------------------------------
+# Source, scripts, and colcon output live on the host and are bind-mounted at
+# runtime (see docker-compose.yml). The image only provides the toolchain and
+# system packages; build with `bros` inside the container.
 COPY setup-shell-env.sh /tmp/setup-shell-env.sh
 RUN chmod +x /tmp/setup-shell-env.sh && /tmp/setup-shell-env.sh && rm /tmp/setup-shell-env.sh
 

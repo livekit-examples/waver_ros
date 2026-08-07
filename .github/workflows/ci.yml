@@ -25,49 +25,64 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Build and test the packages this repository owns.
-  #
-  # Deliberately does NOT import waver.repos. Every dependency on ROS Portal,
-  # rf2o, and rplidar_ros is an exec_depend — needed to *launch* the robot, not
-  # to build it — so skipping them keeps CI at a few minutes instead of
-  # compiling the LiveKit C++ SDK and its Rust components on every push.
-  #
-  # The full container, including the libcamera stage and the SDK build, is
-  # exercised by `docker compose build` on the robot. See README.
+  # Mirror the developer workflow: clone dependencies on the host, build the
+  # Docker image, then rosdep + colcon build inside a container with the
+  # workspace bind-mounted.
   # ---------------------------------------------------------------------------
-  build-and-test:
+  docker-build:
     runs-on: ubuntu-latest
-    container:
-      image: ros:jazzy-ros-base-noble
+    # Pulling ros-portal requires an organization secret. Public PRs cannot
+    # receive that secret, so leave the static checks running while skipping
+    # the host/container build in that context.
+    env:
+      HAS_PRIVATE_REPOS: ${{ secrets.SSH_PRIVATE_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        shell: bash
+      - name: Install host tools
         run: |
           set -euo pipefail
-          apt-get update
-          apt-get install -y python3-colcon-common-extensions python3-rosdep
-          rosdep update --rosdistro jazzy
-          # Runtime-only packages that are not present in this workspace.
-          rosdep install -y -r --ignore-src --rosdistro jazzy \
-            --from-paths src \
-            --skip-keys "ros_portal rf2o_laser_odometry rplidar_ros"
+          sudo apt-get update
+          sudo apt-get install -y vcstool
 
-      - name: Build
-        shell: bash
+      - name: Start SSH agent for private repos
+        if: env.HAS_PRIVATE_REPOS == 'true'
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Setup repos
+        if: env.HAS_PRIVATE_REPOS == 'true'
+        run: ./scripts/setup_repos.sh
+
+      - name: Build Docker image
+        if: env.HAS_PRIVATE_REPOS == 'true'
         run: |
           set -euo pipefail
-          source /opt/ros/jazzy/setup.bash
-          colcon build --event-handlers console_direct+
+          docker build \
+            --build-arg LIBCAMERA_VERSION=v0.7.1+rpt20260429 \
+            -t waver_ros:ci \
+            .
+
+      - name: Build workspace in container
+        if: env.HAS_PRIVATE_REPOS == 'true'
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/waver_ws" \
+            -w /waver_ws \
+            waver_ros:ci \
+            bash -lc './scripts/rosdep_update.sh && colcon build --packages-up-to waver_bringup --cmake-args -DCMAKE_BUILD_TYPE=Release'
 
       - name: Test
-        shell: bash
+        if: env.HAS_PRIVATE_REPOS == 'true'
         run: |
           set -euo pipefail
-          source /opt/ros/jazzy/setup.bash
-          colcon test --event-handlers console_direct+
-          colcon test-result --verbose
+          docker run --rm \
+            -v "$PWD:/waver_ws" \
+            -w /waver_ws \
+            waver_ros:ci \
+            bash -lc 'colcon test --packages-select waver_driver --event-handlers console_direct+ && colcon test-result --verbose'
 
   # ---------------------------------------------------------------------------
   # Cheap static checks that do not need ROS.
