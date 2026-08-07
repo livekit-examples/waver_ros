@@ -31,6 +31,11 @@ jobs:
   # ---------------------------------------------------------------------------
   docker-build:
     runs-on: ubuntu-latest
+    # Pulling ros-portal requires an organization secret. Public PRs cannot
+    # receive that secret, so leave the static checks running while skipping
+    # the host/container build in that context.
+    env:
+      HAS_PRIVATE_REPOS: ${{ secrets.SSH_PRIVATE_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,14 +46,17 @@ jobs:
           sudo apt-get install -y vcstool
 
       - name: Start SSH agent for private repos
+        if: env.HAS_PRIVATE_REPOS == 'true'
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Setup repos
+        if: env.HAS_PRIVATE_REPOS == 'true'
         run: ./scripts/setup_repos.sh
 
       - name: Build Docker image
+        if: env.HAS_PRIVATE_REPOS == 'true'
         run: |
           set -euo pipefail
           docker build \
@@ -57,6 +65,7 @@ jobs:
             .
 
       - name: Build workspace in container
+        if: env.HAS_PRIVATE_REPOS == 'true'
         run: |
           set -euo pipefail
           docker run --rm \
@@ -66,6 +75,7 @@ jobs:
             bash -lc './scripts/rosdep_update.sh && colcon build --packages-up-to waver_bringup --cmake-args -DCMAKE_BUILD_TYPE=Release'
 
       - name: Test
+        if: env.HAS_PRIVATE_REPOS == 'true'
         run: |
           set -euo pipefail
           docker run --rm \

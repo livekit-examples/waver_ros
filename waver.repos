@@ -14,7 +14,7 @@ repositories:
   ros-portal:
     type: git
     url: git@github.com:livekit/ros-portal.git
-    version: sderosa/BOT-408-livekit-capture
+    version: f2a58795c482aec643e12201c295fba406d23723  # sderosa/BOT-408-livekit-capture
 
   # Laser odometry. Feeds the EKF on /odom_rf2o with publish_tf:=false.
   rf2o_laser_odometry:
@@ -37,4 +37,4 @@ repositories:
   topic_tools:
     type: git
     url: https://github.com/ros-tooling/topic_tools.git
-    version: humble
+    version: 0fc927b7c0af0aaffae34a947b6ea4a7f9f97c94  # humble
