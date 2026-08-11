@@ -32,6 +32,7 @@ from launch import LaunchContext
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import get_launch_description_from_any_launch_file
 from launch.substitutions import LocalSubstitution
+from launch.utilities import normalize_to_list_of_substitutions
 from launch.utilities import perform_substitutions
 from launch_ros.actions import Node
 
@@ -53,14 +54,22 @@ class Graph:
         self.includes = includes
 
 
+def _text(context, value):
+    """Perform substitutions on anything launch accepts in place of a string."""
+    return perform_substitutions(context, normalize_to_list_of_substitutions(value))
+
+
+def _is_local(part):
+    return any(isinstance(sub, LocalSubstitution) for sub in normalize_to_list_of_substitutions(part))
+
+
 def _resolved_node(node, context):
     # No public API expands a Node's parameters and remaps; _perform_substitutions is
     # what Node.execute() itself calls before handing the command line to the OS.
     node._perform_substitutions(context)
     # cmd[0] is the executable path; the LocalSubstitution entries are the __node/__ns
     # ros args that only Node.execute() can fill in, and they carry nothing to assert on.
-    argv = [perform_substitutions(context, part) for part in node.cmd[1:]
-            if not any(isinstance(sub, LocalSubstitution) for sub in part)]
+    argv = [_text(context, part) for part in node.cmd[1:] if not _is_local(part)]
 
     params = {}
     for index, arg in enumerate(argv):
@@ -72,8 +81,8 @@ def _resolved_node(node, context):
         os.unlink(path)
 
     return {
-        'package': perform_substitutions(context, node.node_package),
-        'executable': perform_substitutions(context, node.node_executable),
+        'package': _text(context, node.node_package),
+        'executable': _text(context, node.node_executable),
         'argv': argv,
         'params': params,
     }
@@ -84,13 +93,18 @@ def _walk(entities, context, nodes, includes):
         enabled = entity.condition is None or entity.condition.evaluate(context)
         if isinstance(entity, Node):
             if enabled:
-                nodes[entity.node_name] = _resolved_node(entity, context)
+                resolved = _resolved_node(entity, context)
+                # Nothing here runs in a namespace, so drop launch's placeholder for one.
+                nodes[entity.node_name.rsplit('/', 1)[-1]] = resolved
         elif isinstance(entity, IncludeLaunchDescription):
             if enabled:
-                location = perform_substitutions(
-                    context, entity.launch_description_source.location)
-                includes[pathlib.Path(location).name] = {
-                    perform_substitutions(context, key): perform_substitutions(context, value)
+                # Parsing the included file (what IncludeLaunchDescription.execute does
+                # first) both proves the target exists and expands its path; the
+                # description it returns is the included package's business, not ours.
+                source = entity.launch_description_source
+                source.get_launch_description(context)
+                includes[pathlib.Path(source.location).name] = {
+                    _text(context, key): _text(context, value)
                     for key, value in entity.launch_arguments
                 }
         else:
