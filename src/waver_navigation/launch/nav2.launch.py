@@ -19,7 +19,7 @@
 nav2's servers read their frames (global_frame, robot_base_frame, ...) from a
 params yaml, and the stock params use unprefixed frames (map / odom / base_link).
 This robot prefixes every frame with ``<robot_name>/`` (matching the frame_prefix
-used by robot_state_publisher and the other nodes in waver.launch.xml), so
+used by robot_state_publisher and the other nodes in waver.launch.py), so
 without rewriting, every nav2 TF lookup would fail and the stack would never
 activate. This helper rewrites the frame keys to the ``<robot_name>/`` prefix and
 forwards the result to nav2_bringup's stock navigation_launch.
@@ -31,7 +31,10 @@ behaviors but to ``<prefix>odom`` in the local costmap — a flat leaf rewrite
 
 Topics stay flat (/scan, /odom, /cmd_vel, /map) and are inherited unchanged.
 navigation_launch does NOT start map_server or amcl; the map and map->odom
-transform come from the always-on slam_toolbox (see waver.launch.xml).
+transform come from slam_toolbox, which waver.launch.py brings up. Launch this
+alongside a running robot graph:
+
+    ros2 launch waver_navigation nav2.launch.py robot_name:=robot_1
 """
 
 import os
@@ -142,9 +145,12 @@ def generate_launch_description():
         DeclareLaunchArgument('robot_name', default_value='robot_1',
                               description='TF frame prefix for the nav2 servers/costmaps.'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('params_file', default_value=default_params,
-                              description='Source nav2 params; frames are rewritten per robot_name.'),
-        DeclareLaunchArgument('use_composition', default_value='True',
-                              description='Run all nav2 servers in one component container (CPU/RAM win on the Pi).'),
+        DeclareLaunchArgument(
+            'params_file', default_value=default_params,
+            description='Source nav2 params; frames are rewritten per robot_name.'),
+        DeclareLaunchArgument(
+            'use_composition', default_value='True',
+            description='Run all nav2 servers in one component container '
+                        '(CPU/RAM win on the Pi).'),
         OpaqueFunction(function=_launch_setup),
     ])

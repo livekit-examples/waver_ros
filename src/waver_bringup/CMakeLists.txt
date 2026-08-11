@@ -25,6 +25,12 @@ find_package(ament_cmake_auto REQUIRED)
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
+
+  # Expands waver.launch.py offline (no nodes are spawned) and asserts the graph it
+  # describes. Needs the runtime dependencies on the ament index: xacro expands the
+  # URDF and the includes resolve package shares.
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(test_waver_launch test/test_waver_launch.py)
 endif()
 
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR INSTALL_TO_SHARE config launch)

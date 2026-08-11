@@ -1,21 +1,4 @@
-# Dependencies imported into src/externals/ by scripts/setup-workspace.sh.
-#
-# Every entry is pinned to a commit SHA, never a branch. Two of these
-# (rplidar_ros, m-explore-ros2) were previously cloned by hand and undeclared,
-# and rf2o_laser_odometry tracked the moving `ros2` branch; pinning them makes
-# the robot's build reproducible.
-#
-# NOTE: ros2-livekit-bridge is pinned to the branch that removes the waver stack
-# from that repo. Re-pin to a `main` SHA once that change merges. Importing an
-# older bridge is not safe here: before that commit its own external.repos still
-# pulls GGomezMorales/waver, which puts a second waver_description on the
-# AMENT_PREFIX_PATH and shadows the vendored copy in src/vendor/.
 repositories:
-  ros2-livekit-bridge:
-    type: git
-    url: https://github.com/livekit/ros2-livekit-bridge.git
-    version: 7dd2a867e4f566c546e24b23af31b26e0d773d5b  # sderosa/BOT-408-remove-waver
-
   # Laser odometry. Feeds the EKF on /odom_rf2o with publish_tf:=false.
   rf2o_laser_odometry:
     type: git
@@ -33,3 +16,8 @@ repositories:
     type: git
     url: https://github.com/robo-friends/m-explore-ros2.git
     version: 326cf8a0b487c34246bb8f3326afbcd69576dc60  # main
+
+  # topic_tools (the /<id>/cmd_vel -> /cmd_vel relay) is not listed here: jazzy
+  # ships ros-jazzy-topic-tools 1.3.4, the same upstream version this used to
+  # build from source, so rosdep installs it from apt via waver_bringup's
+  # exec_depend. It was a source pin only because lyrical needed a distro branch.

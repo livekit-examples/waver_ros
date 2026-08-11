@@ -20,7 +20,7 @@ slam_toolbox reads map_frame / odom_frame / base_frame from a params yaml, not
 from launch arguments, so there is no clean way to prefix them from XML. This
 helper rewrites those three keys to the ``<robot_name>/`` prefix (matching the
 frame_prefix used by robot_state_publisher and the other nodes in
-waver.launch.xml) and forwards the result to slam_toolbox's stock
+waver.launch.py) and forwards the result to slam_toolbox's stock
 online_async launch. The scan_topic and all tuning parameters are inherited
 unchanged from the source params file.
 """
@@ -83,10 +83,12 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        DeclareLaunchArgument('robot_name', default_value='robot_1',
-                              description='TF frame prefix for slam_toolbox map/odom/base frames.'),
+        DeclareLaunchArgument(
+            'robot_name', default_value='robot_1',
+            description='TF frame prefix for slam_toolbox map/odom/base frames.'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('slam_params_file', default_value=default_params,
-                              description='Source slam_toolbox params; frames are rewritten per robot_name.'),
+        DeclareLaunchArgument(
+            'slam_params_file', default_value=default_params,
+            description='Source slam_toolbox params; frames are rewritten per robot_name.'),
         OpaqueFunction(function=_launch_setup),
     ])

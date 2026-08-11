@@ -19,7 +19,7 @@ depend on them at launch time, and because the upstream repository shares the na
 
 | Package | Vendored | Why |
 |---|---|---|
-| `waver_description` | yes | URDF/xacro and meshes. `waver.launch.xml` and `gazebo.launch.xml` resolve the robot model from `$(find-pkg-share waver_description)/urdf/waver.xacro`. |
+| `waver_description` | yes | URDF/xacro and meshes. `waver.launch.py` and `gazebo.launch.xml` resolve the robot model from `$(find-pkg-share waver_description)/urdf/waver.xacro`. |
 | `waver_gazebo` | yes | `gazebo.launch.xml` uses `worlds/room.sdf` and `config/ros_gz_bridge.yaml`. |
 | `waver_nav` | no | Nothing resolves it at runtime. `waver_navigation/config/slam_params.yaml` was *forked* from its `param/mapper_params_online_async.yaml` and is now owned here; the only surviving mentions are "forked from" comments. |
 | `waver_viz` | no | Unreferenced. |

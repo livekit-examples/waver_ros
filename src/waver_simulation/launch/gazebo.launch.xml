@@ -21,7 +21,7 @@
     <arg name="world_file" default="$(find-pkg-share waver_gazebo)/worlds/room.sdf" />
     <arg name="gui" default="false" description="Launch the Gazebo GUI client." />
 
-    <!-- Per-robot TF frame prefix. Must match waver.launch.xml / slam so the
+    <!-- Per-robot TF frame prefix. Must match waver.launch.py / slam so the
          whole sim TF tree lives under "<robot_name>/" and several sim robots can
          share one viewer's /tf without frame collisions. -->
     <arg name="robot_name" default="robot_1" description="Per-robot TF frame prefix." />

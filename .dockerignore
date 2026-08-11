@@ -1,0 +1,36 @@
+# Keep the Docker build context small: the Dockerfile COPYs src/, so exclude
+# VCS metadata and local artifacts.
+
+# vcs-imported dependencies. The Dockerfile runs `vcs import ... --skip-existing`,
+# so a host checkout copied into the context would silently win over the pins in
+# waver.repos and make the image depend on host state. Always fetch them fresh.
+/src/externals
+
+# Colcon output at the workspace root (not under src/, but never belongs in context).
+/build
+/install
+/log
+
+# Host repo metadata and tooling — not copied into the image.
+/.git
+/.github
+/.devcontainer
+/.claude
+/.vscode
+/docker-compose.yml
+/.env
+/.env.*
+**/.git
+**/.git/**
+
+# Python bytecode and local build artifacts under src/.
+**/__pycache__
+**/*.py[cod]
+src/**/build
+src/**/install
+src/**/log
+src/**/target
+
+# Upstream CI/dev trees inside imported dependencies.
+**/.github
+**/.devcontainer
