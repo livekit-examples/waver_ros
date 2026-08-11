@@ -32,7 +32,7 @@ Two params files select what the EKF does (via the ``fuse_imu`` arg):
 
 Both files carry unprefixed frames (map/odom/base_link/world); this helper rewrites
 them to the ``<robot_name>/`` prefix (matching robot_state_publisher and the rest of
-waver.launch.xml), mirroring slam.launch.py.
+waver.launch.py), mirroring slam.launch.py.
 """
 
 import os

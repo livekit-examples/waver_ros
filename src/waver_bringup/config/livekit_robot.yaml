@@ -25,12 +25,6 @@ ros_portal:
   version: "0.0.1"
   topic_polling_period_ms: 500
 
-  services:
-    - service: "/slam_toolbox/reset"
-      direction: "out"
-      participant: "waver_controller"
-      msg_type: "slam_toolbox/srv/Reset"
-
   topics:
     # Commands received from the controller (LiveKit -> ROS).
     - topic: "/waver.*/cmd_vel"

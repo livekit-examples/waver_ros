@@ -4,7 +4,14 @@
 > This repository is currently in Developer Preview mode and not ready for production use.
 > There may be bugs, and APIs and configuration options are subject to change during this period.
 
-ROS 2 stack for the [Waveshare WAVE ROVER](https://www.waveshare.com/wiki/WAVE_ROVER)
+ROS 2 stack for the [Waveshare WAVE ROVER](https://www.waveshare.com/wiki/WAVE_ROVER).
+## Hardware
+
+- [Waveshare WAVE ROVER](https://www.waveshare.com/wiki/WAVE_ROVER)
+- Raspberry Pi 4 Model B.
+- __optional:__ RPLidar C1 on USB, providing `/scan`.
+- IMX219 camera, connected through MIPI CSI connector.
+
 4WD rover, driven from a Raspberry Pi over serial and teleoperated / navigated
 remotely over [LiveKit](https://livekit.io) via
 [ROS Portal](https://github.com/livekit/ros-portal).
@@ -39,12 +46,6 @@ into the image. For day-to-day source changes, rebuild inside the running
 container (`colcon build --packages-up-to waver_bringup`) or rebuild the image.
 Use the image without the bind mount when you want the self-contained build.
 
-## Hardware
-
-- [Waveshare WAVE ROVER](https://www.waveshare.com/wiki/WAVE_ROVER)
-- Raspberry Pi 4 Model B.
-- __optional:__ RPLidar C1 on USB, providing `/scan`.
-- IMX219 CSI camera, captured directly by GStreamer (not through a ROS topic).
 
 ### Host setup
 
@@ -81,15 +82,15 @@ driver's `gyro_bias` parameter.
 ### Physical robot
 
 ```bash
-ros2 launch waver_bringup waver.launch.xml \
+ros2 launch waver_bringup waver.launch.py \
   rover_serial_port:=/dev/ttyS0 \
   lidar_serial_port:=/dev/ttyUSB0
 ```
 
-Teleop only — skips the lidar, laser odometry, EKF, and Nav2:
+Teleop only — skips the lidar, laser odometry, EKF, and mapping:
 
 ```bash
-ros2 launch waver_bringup waver.launch.xml \
+ros2 launch waver_bringup waver.launch.py \
   rover_serial_port:=/dev/ttyS0 \
   teleop_only:=true
 ```
@@ -105,12 +106,12 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 Gazebo, on a workstation rather than the Pi:
 
 ```bash
-ros2 launch waver_bringup waver.launch.xml sim:=true sim_gui:=true
+ros2 launch waver_bringup waver.launch.py sim:=true sim_gui:=true
 ```
 
 run with `--show-args` to see the default arguments:
 ```bash
-ros2 launch waver_bringup waver.launch.xml sim:=true sim_gui:=true --show-args
+ros2 launch waver_bringup waver.launch.py sim:=true sim_gui:=true --show-args
 ```
 
 ## Connecting to LiveKit
@@ -120,7 +121,7 @@ ros2 launch waver_bringup waver.launch.xml sim:=true sim_gui:=true --show-args
 `LIVEKIT_URL` / `LIVEKIT_TOKEN` from `.env` (or the environment). Override the
 config path with `LIVEKIT_CONFIG` if needed.
 
-`waver.launch.xml` brings up the robot graph only; the bridge is the separate
+`waver.launch.py` brings up the robot graph only; the bridge is the separate
 `ros_portal` container. To launch the portal by hand instead of compose:
 
 ```bash

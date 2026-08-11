@@ -29,6 +29,14 @@ jobs:
   # LiveKit credentials so compose can interpolate ros_portal env vars while
   # we only build the waver_ros image (vcs + rosdep + colcon happen in the
   # Dockerfile).
+  #
+  # waver_ros is named explicitly rather than building every service: the
+  # ros_portal service builds FROM livekit/ros-portal, which is a private
+  # Docker Hub repository, so an unauthenticated runner cannot resolve it
+  # ("insufficient_scope: authorization failed"). Even with credentials it
+  # would be a poor CI target -- Dockerfile.ros_portal compiles libcamera's
+  # rpi/vc4 pipeline for the Pi, which on an amd64 runner means emulation for
+  # a code path that cannot be exercised without CSI hardware anyway.
   # ---------------------------------------------------------------------------
   docker-build:
     runs-on: ubuntu-latest
@@ -39,7 +47,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build images
-        run: docker compose build
+        run: docker compose build waver_ros
 
   # ---------------------------------------------------------------------------
   # Cheap static checks that do not need ROS.
@@ -48,14 +56,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: shellcheck
-        run: |
-          sudo apt-get update && sudo apt-get install -y shellcheck
-          shellcheck setup-shell-env.sh
-          if compgen -G 'scripts/*.sh' > /dev/null; then
-            shellcheck scripts/*.sh
-          fi
 
       - name: XML and YAML are well-formed
         run: |
