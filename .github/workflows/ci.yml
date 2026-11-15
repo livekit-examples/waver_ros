@@ -44,7 +44,7 @@ jobs:
       LIVEKIT_URL: wss://stub.example.com
       LIVEKIT_TOKEN: stub-token
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build images
         run: docker compose build waver_ros
@@ -55,7 +55,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: XML and YAML are well-formed
         run: |
